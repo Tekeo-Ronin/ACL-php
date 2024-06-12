@@ -1,4 +1,5 @@
 <?php
+
 class Router {
     private $userId;
 
@@ -14,21 +15,35 @@ class Router {
             if ($this->isServiceActive($service)) {
                 $acl = new ACL($this->userId);
                 if ($acl->check($this->userId, $service)) {
-                    // Call the service
+                    $this->callService($service, $category);
                 } else {
                     $acl->report($this->userId, $service);
-                    echo "You do not have access to this service.";
+                    $this->logUnauthorizedAccess($this->userId, $service);
+                    echo "Ви не маєте доступу до цього сервісу.";
                 }
             } else {
-                echo "The service is unavailable.";
+                echo "Сервіс недоступний.";
             }
         } else {
-            echo "Invalid request.";
+            echo "Неправильний запит.";
         }
     }
 
     private function isServiceActive($service) {
-        // The logic of checking whether the service is active
+        return $this->checkServiceInDatabase($service);
     }
-}
 
+    private function checkServiceInDatabase($service) {
+        $config = include(__DIR__ . '/../config/config.php');
+        $db = new PDO($config['database']['dsn'], $config['database']['username'], $config['database']['password']);
+        $stmt = $db->prepare("SELECT COUNT(*) FROM services WHERE name = :service AND active = 1");
+        $stmt->execute(['service' => $service]);
+        return $stmt->fetchColumn() > 0;
+    }
+
+    private function logUnauthorizedAccess($userId, $service) {
+        $sensor = new Sensor();
+        $sensor->logUnauthorizedAccess($userId, $service);
+    }
+
+}

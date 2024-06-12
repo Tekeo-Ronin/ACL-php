@@ -1,13 +1,15 @@
 <?php
-require 'vendor/autoload.php';
 
+require_once __DIR__ . '/../vendor/autoload.php';
 use WhichBrowser\Parser;
 
 class Sensor {
-    public function logAccessAttempt($userId, $serviceName) {
-        $result = new Parser(getallheaders());
-        $log = sprintf("User: %s, Service: %s, Browser: %s, Platform: %s\n",
-            $userId, $serviceName, $result->browser->toString(), $result->os->toString());
-        file_put_contents('../logs/access.log', $log, FILE_APPEND);
+    public function logUnauthorizedAccess($userId, $service) {
+        $ua = isset($_SERVER['HTTP_USER_AGENT']) ? $_SERVER['HTTP_USER_AGENT'] : '';
+        $result = new Parser($ua);
+        $details = $result->toString();
+
+        $logMessage = sprintf("Unauthorized access attempt by User ID %d for service %s. User Agent: %s", $userId, $service, $details);
+        error_log($logMessage, 3, __DIR__ . '/../logs/access.log');
     }
 }
